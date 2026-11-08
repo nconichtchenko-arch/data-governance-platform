@@ -4,6 +4,17 @@
 
 Pet-проект на реальном dbt-манифесте (`marketplace_dwh`, 6 моделей, 1 снапшот, 5 тестов, 4 источника, PostgreSQL).
 
+## 📸 Скриншоты
+
+**Каталог — модели, снапшоты, тесты, источники:**
+![Каталог](assets/catalog.png)
+
+**Контракты — 24/24 PASS, включая проверку типов:**
+![Контракты](assets/contracts.png)
+
+**Lineage — граф зависимостей с восстановленным виртуальным ребром (пунктир):**
+![Lineage](assets/lineage.png)
+
 ## 🎯 Зачем это
 
 В реальной компании три вещи — **каталог**, **контракты** и **lineage** — часто живут в разных системах и стоят как чугунный мост. Здесь показано, как собрать их **в одном Streamlit-приложении** из одного `manifest.json` + YAML-файлов контрактов + PostgreSQL.
@@ -41,9 +52,10 @@ data-governance-platform/
 │   └── contract_validator.py    # YAML + PostgreSQL → contract_results.json
 ├── app/
 │   └── streamlit_app.py         # 3 вкладки: Каталог / Контракты / Lineage
-├── data/                        # генерируемые артефакты (не редактировать руками)
+├── data/                        # генерируемые артефакты
 │   ├── catalog.json
 │   └── contract_results.json
+├── assets/                      # скриншоты для README
 ├── requirements.txt
 └── README.md
 ```
