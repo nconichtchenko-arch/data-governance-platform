@@ -1,0 +1,378 @@
+{
+  "metadata": {
+    "generated_at": "2026-11-08T05:56:19.103312+00:00",
+    "source_manifest": "manifest.json",
+    "dbt_version": "1.12.6",
+    "project_name": "marketplace_dwh",
+    "adapter_type": "postgres",
+    "counts": {
+      "models": 6,
+      "snapshots": 1,
+      "tests": 5,
+      "sources": 4,
+      "edges": 14,
+      "virtual_edges": 1
+    }
+  },
+  "models": [
+    {
+      "unique_id": "model.marketplace_dwh.dim_customers",
+      "name": "dim_customers",
+      "resource_type": "model",
+      "database": "dwh_marketplace",
+      "schema": "dbt_schema",
+      "materialized": "view",
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "analytics"
+      ],
+      "layer": "analytics",
+      "columns": [],
+      "depends_on": [
+        "source.marketplace_dwh.raw.dim_customers"
+      ],
+      "original_file_path": "models\\marts\\dim_customers.sql",
+      "raw_code": "SELECT * FROM {{ source('raw', 'dim_customers') }}"
+    },
+    {
+      "unique_id": "model.marketplace_dwh.dim_dates",
+      "name": "dim_dates",
+      "resource_type": "model",
+      "database": "dwh_marketplace",
+      "schema": "dbt_schema",
+      "materialized": "view",
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "analytics"
+      ],
+      "layer": "analytics",
+      "columns": [],
+      "depends_on": [
+        "source.marketplace_dwh.raw.dim_dates"
+      ],
+      "original_file_path": "models\\marts\\dim_dates.sql",
+      "raw_code": "SELECT * FROM {{ source('raw', 'dim_dates') }}"
+    },
+    {
+      "unique_id": "model.marketplace_dwh.dim_products",
+      "name": "dim_products",
+      "resource_type": "model",
+      "database": "dwh_marketplace",
+      "schema": "dbt_schema",
+      "materialized": "view",
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "analytics"
+      ],
+      "layer": "analytics",
+      "columns": [],
+      "depends_on": [
+        "source.marketplace_dwh.raw.dim_products"
+      ],
+      "original_file_path": "models\\marts\\dim_products.sql",
+      "raw_code": "SELECT * FROM {{ source('raw', 'dim_products') }}"
+    },
+    {
+      "unique_id": "model.marketplace_dwh.fct_sales",
+      "name": "fct_sales",
+      "resource_type": "model",
+      "database": "dwh_marketplace",
+      "schema": "dbt_schema",
+      "materialized": "incremental",
+      "description": "Витрина агрегированных продаж по чекам и товарам",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "analytics"
+      ],
+      "layer": "analytics",
+      "columns": [
+        {
+          "name": "invoice_no",
+          "description": "Номер счета",
+          "data_type": "",
+          "meta": {}
+        },
+        {
+          "name": "stock_code",
+          "description": "Код товара",
+          "data_type": "",
+          "meta": {}
+        },
+        {
+          "name": "customer_id",
+          "description": "ID клиента",
+          "data_type": "",
+          "meta": {}
+        },
+        {
+          "name": "order_date",
+          "description": "Дата продажи",
+          "data_type": "",
+          "meta": {}
+        }
+      ],
+      "depends_on": [
+        "model.marketplace_dwh.stg_sales"
+      ],
+      "original_file_path": "models\\marts\\fct_sales.sql",
+      "raw_code": "{{ config(\r\n    materialized='incremental',\r\n    unique_key=['invoice_no', 'stock_code', 'order_date', 'customer_id']\r\n) }}\r\n\r\nSELECT\r\n    invoice_no,\r\n    stock_code,\r\n    date_id AS order_date,\r\n    customer_id,\r\n    SUM(quantity) AS total_quantity,\r\n    SUM(total_amount) AS total_revenue\r\nFROM {{ ref('stg_sales') }}\r\nGROUP BY \r\n    invoice_no, \r\n    stock_code, \r\n    date_id, \r\n    customer_id"
+    },
+    {
+      "unique_id": "model.marketplace_dwh.mart_sales_funnel",
+      "name": "mart_sales_funnel",
+      "resource_type": "model",
+      "database": "dwh_marketplace",
+      "schema": "dbt_schema",
+      "materialized": "table",
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "analytics"
+      ],
+      "layer": "analytics",
+      "columns": [],
+      "depends_on": [],
+      "original_file_path": "models\\marts\\mart_sales_funnel.sql",
+      "raw_code": "{{ config(materialized='table') }}\r\n\r\nWITH orders AS (\r\n    SELECT\r\n        invoice_no,\r\n        MIN(order_date) AS first_order_date,\r\n        SUM(total_revenue) AS total_revenue,\r\n        COUNT(DISTINCT stock_code) AS total_items\r\n    FROM dbt_schema.fct_sales\r\n    GROUP BY invoice_no\r\n)\r\n\r\nSELECT\r\n    first_order_date AS order_date,\r\n    COUNT(DISTINCT invoice_no) AS total_orders,\r\n    SUM(CASE WHEN total_revenue > 0 THEN 1 ELSE 0 END) AS paid_orders,\r\n    SUM(CASE WHEN total_revenue = 0 THEN 1 ELSE 0 END) AS cancelled_orders,\r\n    ROUND(\r\n        SUM(CASE WHEN total_revenue > 0 THEN 1 ELSE 0 END)::numeric / \r\n        NULLIF(COUNT(DISTINCT invoice_no), 0) * 100, 2\r\n    ) AS conversion_rate_percent,\r\n    SUM(total_revenue) AS total_revenue\r\nFROM orders\r\nGROUP BY first_order_date\r\nORDER BY first_order_date"
+    },
+    {
+      "unique_id": "model.marketplace_dwh.stg_sales",
+      "name": "stg_sales",
+      "resource_type": "model",
+      "database": "dwh_marketplace",
+      "schema": "dbt_schema",
+      "materialized": "view",
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "staging"
+      ],
+      "layer": "staging",
+      "columns": [],
+      "depends_on": [
+        "source.marketplace_dwh.raw.fact_sales"
+      ],
+      "original_file_path": "models\\staging\\stg_sales.sql",
+      "raw_code": "SELECT\r\n    *\r\nFROM {{ source('raw', 'fact_sales') }}"
+    }
+  ],
+  "snapshots": [
+    {
+      "unique_id": "snapshot.marketplace_dwh.dim_customers_snapshot",
+      "name": "dim_customers_snapshot",
+      "resource_type": "snapshot",
+      "database": "dwh_marketplace",
+      "schema": "snapshots",
+      "strategy": "check",
+      "unique_key": "customer_id",
+      "check_cols": [
+        "country"
+      ],
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "analytics"
+      ],
+      "columns": [],
+      "original_file_path": "snapshots\\dim_customers_snapshot.sql"
+    }
+  ],
+  "tests": [
+    {
+      "unique_id": "test.marketplace_dwh.not_null_fct_sales_invoice_no.8773fc49e0",
+      "name": "not_null_fct_sales_invoice_no",
+      "resource_type": "test",
+      "attached_node": "model.marketplace_dwh.fct_sales",
+      "test_name": "not_null",
+      "test_kwargs": {
+        "column_name": "invoice_no",
+        "model": "{{ get_where_subquery(ref('fct_sales')) }}"
+      },
+      "severity": "ERROR"
+    },
+    {
+      "unique_id": "test.marketplace_dwh.not_null_fct_sales_stock_code.270eaae826",
+      "name": "not_null_fct_sales_stock_code",
+      "resource_type": "test",
+      "attached_node": "model.marketplace_dwh.fct_sales",
+      "test_name": "not_null",
+      "test_kwargs": {
+        "column_name": "stock_code",
+        "model": "{{ get_where_subquery(ref('fct_sales')) }}"
+      },
+      "severity": "ERROR"
+    },
+    {
+      "unique_id": "test.marketplace_dwh.relationships_fct_sales_customer_id__customer_id__ref_dim_customers_.3a0287e3ee",
+      "name": "relationships_fct_sales_customer_id__customer_id__ref_dim_customers_",
+      "resource_type": "test",
+      "attached_node": "model.marketplace_dwh.fct_sales",
+      "test_name": "relationships",
+      "test_kwargs": {
+        "column_name": "customer_id",
+        "to": "ref('dim_customers')",
+        "field": "customer_id",
+        "model": "{{ get_where_subquery(ref('fct_sales')) }}"
+      },
+      "severity": "ERROR"
+    },
+    {
+      "unique_id": "test.marketplace_dwh.relationships_fct_sales_order_date__date_id__ref_dim_dates_.f9a0cd7433",
+      "name": "relationships_fct_sales_order_date__date_id__ref_dim_dates_",
+      "resource_type": "test",
+      "attached_node": "model.marketplace_dwh.fct_sales",
+      "test_name": "relationships",
+      "test_kwargs": {
+        "column_name": "order_date",
+        "to": "ref('dim_dates')",
+        "field": "date_id",
+        "model": "{{ get_where_subquery(ref('fct_sales')) }}"
+      },
+      "severity": "ERROR"
+    },
+    {
+      "unique_id": "test.marketplace_dwh.relationships_fct_sales_stock_code__stock_code__ref_dim_products_.59f4614b6d",
+      "name": "relationships_fct_sales_stock_code__stock_code__ref_dim_products_",
+      "resource_type": "test",
+      "attached_node": "model.marketplace_dwh.fct_sales",
+      "test_name": "relationships",
+      "test_kwargs": {
+        "column_name": "stock_code",
+        "to": "ref('dim_products')",
+        "field": "stock_code",
+        "model": "{{ get_where_subquery(ref('fct_sales')) }}"
+      },
+      "severity": "ERROR"
+    }
+  ],
+  "sources": [
+    {
+      "unique_id": "source.marketplace_dwh.raw.dim_customers",
+      "name": "dim_customers",
+      "resource_type": "source",
+      "database": "dwh_marketplace",
+      "schema": "public",
+      "source_name": "raw",
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "analytics"
+      ],
+      "columns": [],
+      "original_file_path": "models\\staging\\sources.yml"
+    },
+    {
+      "unique_id": "source.marketplace_dwh.raw.dim_dates",
+      "name": "dim_dates",
+      "resource_type": "source",
+      "database": "dwh_marketplace",
+      "schema": "public",
+      "source_name": "raw",
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "analytics"
+      ],
+      "columns": [],
+      "original_file_path": "models\\staging\\sources.yml"
+    },
+    {
+      "unique_id": "source.marketplace_dwh.raw.dim_products",
+      "name": "dim_products",
+      "resource_type": "source",
+      "database": "dwh_marketplace",
+      "schema": "public",
+      "source_name": "raw",
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "analytics"
+      ],
+      "columns": [],
+      "original_file_path": "models\\staging\\sources.yml"
+    },
+    {
+      "unique_id": "source.marketplace_dwh.raw.fact_sales",
+      "name": "fact_sales",
+      "resource_type": "source",
+      "database": "dwh_marketplace",
+      "schema": "public",
+      "source_name": "raw",
+      "description": "",
+      "owner": "pavel.onishchenko",
+      "tags": [
+        "other"
+      ],
+      "columns": [],
+      "original_file_path": "models\\staging\\sources.yml"
+    }
+  ],
+  "edges": [
+    {
+      "source": "source.marketplace_dwh.raw.fact_sales",
+      "target": "model.marketplace_dwh.stg_sales"
+    },
+    {
+      "source": "source.marketplace_dwh.raw.dim_dates",
+      "target": "model.marketplace_dwh.dim_dates"
+    },
+    {
+      "source": "source.marketplace_dwh.raw.dim_customers",
+      "target": "model.marketplace_dwh.dim_customers"
+    },
+    {
+      "source": "source.marketplace_dwh.raw.dim_products",
+      "target": "model.marketplace_dwh.dim_products"
+    },
+    {
+      "source": "model.marketplace_dwh.dim_customers",
+      "target": "snapshot.marketplace_dwh.dim_customers_snapshot"
+    },
+    {
+      "source": "model.marketplace_dwh.stg_sales",
+      "target": "model.marketplace_dwh.fct_sales"
+    },
+    {
+      "source": "model.marketplace_dwh.fct_sales",
+      "target": "test.marketplace_dwh.not_null_fct_sales_invoice_no.8773fc49e0"
+    },
+    {
+      "source": "model.marketplace_dwh.fct_sales",
+      "target": "test.marketplace_dwh.not_null_fct_sales_stock_code.270eaae826"
+    },
+    {
+      "source": "model.marketplace_dwh.dim_products",
+      "target": "test.marketplace_dwh.relationships_fct_sales_stock_code__stock_code__ref_dim_products_.59f4614b6d"
+    },
+    {
+      "source": "model.marketplace_dwh.fct_sales",
+      "target": "test.marketplace_dwh.relationships_fct_sales_stock_code__stock_code__ref_dim_products_.59f4614b6d"
+    },
+    {
+      "source": "model.marketplace_dwh.dim_customers",
+      "target": "test.marketplace_dwh.relationships_fct_sales_customer_id__customer_id__ref_dim_customers_.3a0287e3ee"
+    },
+    {
+      "source": "model.marketplace_dwh.fct_sales",
+      "target": "test.marketplace_dwh.relationships_fct_sales_customer_id__customer_id__ref_dim_customers_.3a0287e3ee"
+    },
+    {
+      "source": "model.marketplace_dwh.dim_dates",
+      "target": "test.marketplace_dwh.relationships_fct_sales_order_date__date_id__ref_dim_dates_.f9a0cd7433"
+    },
+    {
+      "source": "model.marketplace_dwh.fct_sales",
+      "target": "test.marketplace_dwh.relationships_fct_sales_order_date__date_id__ref_dim_dates_.f9a0cd7433"
+    }
+  ],
+  "virtual_edges": [
+    {
+      "source": "model.marketplace_dwh.fct_sales",
+      "target": "model.marketplace_dwh.mart_sales_funnel",
+      "reason": "raw SQL reference to 'fct_sales' (not declared in depends_on)"
+    }
+  ]
+}

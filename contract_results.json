@@ -1,0 +1,147 @@
+{
+  "generated_at": "2026-11-08T06:07:04.407982+00:00",
+  "contracts_count": 1,
+  "overall": "PASS",
+  "reports": [
+    {
+      "dataset": "fct_sales",
+      "schema": "dbt_schema",
+      "table": "fct_sales",
+      "checked_at": "2026-11-08T06:07:04.393752+00:00",
+      "checks": [
+        {
+          "name": "table_exists",
+          "status": "PASS",
+          "details": "dbt_schema.fct_sales"
+        },
+        {
+          "name": "column_present::invoice_no",
+          "status": "PASS",
+          "details": "actual=character varying"
+        },
+        {
+          "name": "column_type::invoice_no",
+          "status": "PASS",
+          "details": "expected=text (text), actual=character varying (text)"
+        },
+        {
+          "name": "column_present::stock_code",
+          "status": "PASS",
+          "details": "actual=character varying"
+        },
+        {
+          "name": "column_type::stock_code",
+          "status": "PASS",
+          "details": "expected=text (text), actual=character varying (text)"
+        },
+        {
+          "name": "column_present::order_date",
+          "status": "PASS",
+          "details": "actual=date"
+        },
+        {
+          "name": "column_type::order_date",
+          "status": "PASS",
+          "details": "expected=date (date), actual=date (date)"
+        },
+        {
+          "name": "column_present::customer_id",
+          "status": "PASS",
+          "details": "actual=integer"
+        },
+        {
+          "name": "column_type::customer_id",
+          "status": "PASS",
+          "details": "expected=integer (integer), actual=integer (integer)"
+        },
+        {
+          "name": "column_present::total_quantity",
+          "status": "PASS",
+          "details": "actual=bigint"
+        },
+        {
+          "name": "column_type::total_quantity",
+          "status": "PASS",
+          "details": "expected=integer (integer), actual=bigint (integer)"
+        },
+        {
+          "name": "column_present::total_revenue",
+          "status": "PASS",
+          "details": "actual=numeric"
+        },
+        {
+          "name": "column_type::total_revenue",
+          "status": "PASS",
+          "details": "expected=numeric (numeric), actual=numeric (numeric)"
+        },
+        {
+          "name": "not_null::invoice_no",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"invoice_no\" IS NULL"
+        },
+        {
+          "name": "not_null::stock_code",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"stock_code\" IS NULL"
+        },
+        {
+          "name": "not_null::order_date",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"order_date\" IS NULL"
+        },
+        {
+          "name": "not_null::customer_id",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"customer_id\" IS NULL"
+        },
+        {
+          "name": "primary_key_unique::(invoice_no,stock_code,order_date,customer_id)",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM (\n                SELECT \"invoice_no\", \"stock_code\", \"order_date\", \"customer_id\", count(*) AS c\n                FROM \"dbt_schema\".\"fct_sales\"\n                GROUP BY \"invoice_no\", \"stock_code\", \"order_date\", \"customer_id\"\n                HAVING count(*) > 1\n            ) dup"
+        },
+        {
+          "name": "constraint::invoice_no::not_empty",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"invoice_no\" IS NOT NULL AND NOT (length(\"invoice_no\") > 0)"
+        },
+        {
+          "name": "constraint::stock_code::not_empty",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"stock_code\" IS NOT NULL AND NOT (length(\"stock_code\") > 0)"
+        },
+        {
+          "name": "constraint::order_date::not_in_future",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"order_date\" IS NOT NULL AND NOT (\"order_date\" <= current_date)"
+        },
+        {
+          "name": "constraint::customer_id::positive",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"customer_id\" IS NOT NULL AND NOT (\"customer_id\" > 0)"
+        },
+        {
+          "name": "constraint::total_quantity::non_negative",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"total_quantity\" IS NOT NULL AND NOT (\"total_quantity\" >= 0)"
+        },
+        {
+          "name": "constraint::total_revenue::non_negative",
+          "status": "PASS",
+          "violations": 0,
+          "sql": "SELECT count(*) FROM \"dbt_schema\".\"fct_sales\" WHERE \"total_revenue\" IS NOT NULL AND NOT (\"total_revenue\" >= 0)"
+        }
+      ],
+      "overall": "PASS"
+    }
+  ]
+}
