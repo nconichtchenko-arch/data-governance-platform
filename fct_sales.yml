@@ -1,0 +1,84 @@
+# Data Contract for dbt model: fct_sales
+# Owner: pavel.onishchenko
+# Layer: analytics
+# Source: dbt_schema.fct_sales (PostgreSQL, dwh_marketplace)
+#
+# Контракт описывает ЧТО должно быть в таблице.
+# Валидатор (scripts/contract_validator.py) проверяет это на реальных данных.
+#
+# Правила используют плейсхолдер {col} — валидатор заменит его на "имя_колонки".
+
+contract:
+  version: "1.0"
+  dataset: fct_sales
+  database: dwh_marketplace
+  schema: dbt_schema
+  table: fct_sales
+
+  description: >
+    Витрина агрегированных продаж по чекам и товарам.
+    Одна строка = одна позиция в чеке (invoice_no + stock_code + order_date + customer_id).
+
+  owner:
+    name: Pavel Onishchenko
+    email: pavloni@mail.ru
+
+  freshness:
+    max_age_hours: 24
+    enabled: false
+
+  primary_key:
+    - invoice_no
+    - stock_code
+    - order_date
+    - customer_id
+
+  columns:
+    invoice_no:
+      type: text
+      nullable: false
+      description: Номер счёта
+      constraints:
+        - name: not_empty
+          rule: "length({col}) > 0"
+
+    stock_code:
+      type: text
+      nullable: false
+      description: Код товара
+      constraints:
+        - name: not_empty
+          rule: "length({col}) > 0"
+
+    order_date:
+      type: date
+      nullable: false
+      description: Дата продажи
+      constraints:
+        - name: not_in_future
+          rule: "{col} <= current_date"
+
+    customer_id:
+      type: integer
+      nullable: false
+      description: ID клиента (числовой)
+      constraints:
+        - name: positive
+          rule: "{col} > 0"
+
+    # ВАЖНО: total_quantity = SUM(quantity) — это целое, не numeric.
+    total_quantity:
+      type: integer
+      nullable: true
+      description: Суммарное количество в позиции (целое)
+      constraints:
+        - name: non_negative
+          rule: "{col} >= 0"
+
+    total_revenue:
+      type: numeric
+      nullable: true
+      description: Суммарная выручка по позиции (денежная, с копейками)
+      constraints:
+        - name: non_negative
+          rule: "{col} >= 0"
